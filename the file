@@ -1,0 +1,157 @@
+import { useState, useEffect } from 'react';
+import { MessageCircle, Send } from 'lucide-react';
+
+const OneChan = () => {
+  const [username, setUsername] = useState('');
+  const [hasSetUsername, setHasSetUsername] = useState(false);
+  const [selectedForum, setSelectedForum] = useState('general');
+  const [newPost, setNewPost] = useState('');
+  const [posts, setPosts] = useState({
+    general: [],
+    anime: [],
+    tech: [],
+    random: []
+  });
+
+  useEffect(() => {
+    const savedPosts = localStorage.getItem('onechanPosts');
+    const savedUsername = localStorage.getItem('onechanUsername');
+    if (savedPosts) {
+      setPosts(JSON.parse(savedPosts));
+    }
+    if (savedUsername) {
+      setUsername(savedUsername);
+      setHasSetUsername(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('onechanPosts', JSON.stringify(posts));
+  }, [posts]);
+
+  const handleSetUsername = () => {
+    if (username.trim()) {
+      localStorage.setItem('onechanUsername', username);
+      setHasSetUsername(true);
+    }
+  };
+
+  const handlePost = () => {
+    if (!username.trim() || !newPost.trim()) return;
+
+    const post = {
+      id: Date.now(),
+      username,
+      content: newPost,
+      timestamp: new Date().toISOString()
+    };
+
+    setPosts(prev => ({
+      ...prev,
+      [selectedForum]: [post, ...prev[selectedForum]]
+    }));
+    setNewPost('');
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleString();
+  };
+
+  if (!hasSetUsername) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-900">
+        <div className="w-96 bg-gray-800 rounded-lg p-6 shadow-xl">
+          <h2 className="text-3xl font-bold text-center text-white mb-6">Welcome to 1chan</h2>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Choose a username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSetUsername()}
+              className="flex-1 px-3 py-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500"
+            />
+            <button
+              onClick={handleSetUsername}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none"
+            >
+              Enter
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-gray-900 text-gray-100">
+      {/* Sidebar */}
+      <div className="w-64 bg-gray-800 p-4 space-y-2">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-center mb-4">1chan</h1>
+          <div className="p-2 bg-gray-700 rounded-lg">
+            <p className="text-sm text-gray-400">Posting as:</p>
+            <p className="font-bold">{username}</p>
+          </div>
+        </div>
+        {Object.keys(posts).map((forum) => (
+          <button
+            key={forum}
+            onClick={() => setSelectedForum(forum)}
+            className={`w-full p-2 rounded text-left ${
+              selectedForum === forum
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+            }`}
+          >
+            /{forum}/
+          </button>
+        ))}
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        <div className="max-w-3xl mx-auto p-4 space-y-4">
+          <div className="bg-gray-800 rounded-lg p-4">
+            <h2 className="text-2xl font-bold mb-4">/{selectedForum}/</h2>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <textarea
+                  placeholder="Write your post..."
+                  value={newPost}
+                  onChange={(e) => setNewPost(e.target.value)}
+                  className="flex-1 px-3 py-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500"
+                  rows={3}
+                />
+                <button
+                  onClick={handlePost}
+                  disabled={!newPost.trim()}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none disabled:opacity-50"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {posts[selectedForum].map((post) => (
+                  <div key={post.id} className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageCircle className="w-4 h-4" />
+                      <span className="font-bold text-green-400">{post.username}</span>
+                      <span className="text-sm text-gray-400">
+                        {formatDate(post.timestamp)}
+                      </span>
+                    </div>
+                    <p className="whitespace-pre-wrap">{post.content}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default OneChan;
